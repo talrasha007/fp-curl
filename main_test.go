@@ -79,6 +79,7 @@ func TestParseCurlArgs(t *testing.T) {
 		"-H", "X-Test: yes",
 		"--data", "a=1",
 		"--data", "b=2",
+		"-x", "http://127.0.0.1:8080",
 		"-L",
 		"-k",
 		"-i",
@@ -106,6 +107,10 @@ func TestParseCurlArgs(t *testing.T) {
 
 	if spec.body != "a=1&b=2" {
 		t.Fatalf("parseCurlArgs() body = %s", spec.body)
+	}
+
+	if spec.proxy != "http://127.0.0.1:8080" {
+		t.Fatalf("parseCurlArgs() proxy = %s", spec.proxy)
 	}
 
 	if !spec.followRedirects || !spec.insecureTLS || !spec.includeHeaders {
@@ -179,6 +184,23 @@ func TestParseCurlArgsUserAgentHeader(t *testing.T) {
 	options := buildCycleTLSOptions(spec)
 	if options.UserAgent != "custom-agent" {
 		t.Fatalf("buildCycleTLSOptions() user agent = %s, want custom-agent", options.UserAgent)
+	}
+}
+
+func TestParseCurlArgsProxyEquals(t *testing.T) {
+	t.Parallel()
+
+	spec, err := parseCurlArgs([]string{
+		"--proxy=http://127.0.0.1:8888",
+		"https://example.com",
+	})
+	if err != nil {
+		t.Fatalf("parseCurlArgs() error = %v", err)
+	}
+
+	options := buildCycleTLSOptions(spec)
+	if options.Proxy != "http://127.0.0.1:8888" {
+		t.Fatalf("buildCycleTLSOptions() proxy = %s, want http://127.0.0.1:8888", options.Proxy)
 	}
 }
 

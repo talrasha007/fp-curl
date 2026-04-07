@@ -17,6 +17,7 @@
 - `-I`, `--head`
 - `-i`, `--include`
 - `-o`, `--output`
+- `-x`, `--proxy`
 - `-L`, `--location`
 - `-k`, `--insecure`
 

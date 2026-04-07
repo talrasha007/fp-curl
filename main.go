@@ -15,6 +15,7 @@ type requestSpec struct {
 	url             string
 	headers         http.Header
 	body            string
+	proxy           string
 	headOnly        bool
 	includeHeaders  bool
 	outputPath      string
@@ -137,6 +138,15 @@ func parseCurlArgs(args []string) (requestSpec, error) {
 			i = next
 		case strings.HasPrefix(arg, "--output="):
 			spec.outputPath = strings.TrimPrefix(arg, "--output=")
+		case arg == "-x" || arg == "--proxy":
+			value, next, err := requireNextValue(args, i, arg)
+			if err != nil {
+				return requestSpec{}, err
+			}
+			spec.proxy = value
+			i = next
+		case strings.HasPrefix(arg, "--proxy="):
+			spec.proxy = strings.TrimPrefix(arg, "--proxy=")
 		case arg == "-L" || arg == "--location":
 			spec.followRedirects = true
 		case arg == "-k" || arg == "--insecure":
@@ -225,6 +235,7 @@ func buildCycleTLSOptions(spec requestSpec) cycletls.Options {
 	return cycletls.Options{
 		Headers:                  headers,
 		Body:                     spec.body,
+		Proxy:                    spec.proxy,
 		ShuffleExtensions:        true,
 		EnableClientSessionCache: true,
 		Meta:                     "ignore_ja3",
