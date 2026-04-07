@@ -165,6 +165,23 @@ func TestRunSendsHTTPRequest(t *testing.T) {
 	}
 }
 
+func TestParseCurlArgsUserAgentHeader(t *testing.T) {
+	t.Parallel()
+
+	spec, err := parseCurlArgs([]string{
+		"-H", "User-Agent: custom-agent",
+		"https://example.com",
+	})
+	if err != nil {
+		t.Fatalf("parseCurlArgs() error = %v", err)
+	}
+
+	options := buildCycleTLSOptions(spec)
+	if options.UserAgent != "custom-agent" {
+		t.Fatalf("buildCycleTLSOptions() user agent = %s, want custom-agent", options.UserAgent)
+	}
+}
+
 func TestRunWritesBodyToFile(t *testing.T) {
 	t.Parallel()
 

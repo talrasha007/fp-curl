@@ -6,7 +6,7 @@
 
 1. 解析并移除 `--fp` / `--fp=value`
 2. 先把 `--fp` 的值打印出来
-3. 使用 Go 内置 `net/http` 发起请求
+3. 使用 `github.com/talrasha007/CycleTLS` 发起请求
 
 当前支持的常用参数：
 
@@ -21,6 +21,19 @@
 - `-k`, `--insecure`
 
 未实现的 `curl` 参数会直接报错，避免行为悄悄偏离预期。
+
+当前 `CycleTLS` 默认配置对齐代码里的实现：
+
+- `ShuffleExtensions: true`
+- `EnableClientSessionCache: true`
+- `Meta: "ignore_ja3"`
+- `EnableConnectionReuse: false`
+- `MaxIdleClients: 128`
+- `MaxTotalRequests: 2`
+- `MaxResponseBodySize: -1`
+- `SignatureAlgorithms: "RAND"`
+- `Ja3: "RAND"`
+- 默认 `UserAgent` 为示例中的 Chrome UA；如果传了 `-H "User-Agent: ..."` 会覆盖
 
 ## 构建
 

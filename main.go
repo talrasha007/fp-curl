@@ -1,12 +1,13 @@
 package main
 
 import (
-	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"strings"
+
+	cycletls "github.com/talrasha007/CycleTLS"
 )
 
 type requestSpec struct {
@@ -174,32 +175,13 @@ func parseCurlArgs(args []string) (requestSpec, error) {
 }
 
 func executeRequest(spec requestSpec, stdout io.Writer) error {
-	var bodyReader io.Reader
-	if spec.body != "" {
-		bodyReader = strings.NewReader(spec.body)
-	}
+	client := cycletls.Init()
+	defer client.Close()
 
-	req, err := http.NewRequest(spec.method, spec.url, bodyReader)
-	if err != nil {
-		return fmt.Errorf("build request failed: %w", err)
-	}
-
-	req.Header = spec.headers.Clone()
-
-	client := &http.Client{
-		Transport: buildTransport(spec.insecureTLS),
-	}
-	if !spec.followRedirects {
-		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		}
-	}
-
-	resp, err := client.Do(req)
+	resp, err := client.Do(spec.url, buildCycleTLSOptions(spec), spec.method)
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
-	defer resp.Body.Close()
 
 	if spec.headOnly || spec.includeHeaders {
 		if err := writeResponseHead(stdout, resp); err != nil {
@@ -222,28 +204,53 @@ func executeRequest(spec requestSpec, stdout io.Writer) error {
 		target = file
 	}
 
-	if _, err := io.Copy(target, resp.Body); err != nil {
+	if _, err := io.WriteString(target, resp.Body); err != nil {
 		return fmt.Errorf("read response failed: %w", err)
 	}
 
 	return nil
 }
 
-func buildTransport(insecure bool) *http.Transport {
-	transport := http.DefaultTransport.(*http.Transport).Clone()
-	if insecure {
-		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+func buildCycleTLSOptions(spec requestSpec) cycletls.Options {
+	headers := make(map[string]string, len(spec.headers))
+	for key, values := range spec.headers {
+		headers[key] = strings.Join(values, ", ")
 	}
-	return transport
+
+	userAgent := headers["User-Agent"]
+	if userAgent == "" {
+		userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.106 Safari/537.36"
+	}
+
+	return cycletls.Options{
+		Headers:                  headers,
+		Body:                     spec.body,
+		ShuffleExtensions:        true,
+		EnableClientSessionCache: true,
+		Meta:                     "ignore_ja3",
+		EnableConnectionReuse:    false,
+		MaxIdleClients:           128,
+		MaxTotalRequests:         2,
+		MaxResponseBodySize:      -1,
+		SignatureAlgorithms:      "RAND",
+		Ja3:                      "RAND",
+		UserAgent:                userAgent,
+		DisableRedirect:          !spec.followRedirects,
+		InsecureSkipVerify:       spec.insecureTLS,
+		ForceHTTP1:               false,
+		ForceHTTP3:               false,
+	}
 }
 
-func writeResponseHead(w io.Writer, resp *http.Response) error {
-	if _, err := fmt.Fprintf(w, "%s %s\r\n", resp.Proto, resp.Status); err != nil {
+func writeResponseHead(w io.Writer, resp cycletls.Response) error {
+	if _, err := fmt.Fprintf(w, "HTTP/1.1 %d %s\r\n", resp.Status, http.StatusText(resp.Status)); err != nil {
 		return fmt.Errorf("write response status failed: %w", err)
 	}
 
-	if err := resp.Header.Write(w); err != nil {
-		return fmt.Errorf("write response headers failed: %w", err)
+	for name, value := range resp.Headers {
+		if _, err := fmt.Fprintf(w, "%s: %s\r\n", name, value); err != nil {
+			return fmt.Errorf("write response headers failed: %w", err)
+		}
 	}
 
 	if _, err := io.WriteString(w, "\r\n"); err != nil {
