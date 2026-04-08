@@ -181,7 +181,7 @@ func TestParseCurlArgsUserAgentHeader(t *testing.T) {
 		t.Fatalf("parseCurlArgs() error = %v", err)
 	}
 
-	options := buildCycleTLSOptions(spec)
+	options := buildCycleTLSOptions(spec, nil)
 	if options.UserAgent != "custom-agent" {
 		t.Fatalf("buildCycleTLSOptions() user agent = %s, want custom-agent", options.UserAgent)
 	}
@@ -198,9 +198,55 @@ func TestParseCurlArgsProxyEquals(t *testing.T) {
 		t.Fatalf("parseCurlArgs() error = %v", err)
 	}
 
-	options := buildCycleTLSOptions(spec)
+	options := buildCycleTLSOptions(spec, nil)
 	if options.Proxy != "http://127.0.0.1:8888" {
 		t.Fatalf("buildCycleTLSOptions() proxy = %s, want http://127.0.0.1:8888", options.Proxy)
+	}
+}
+
+func TestBuildCycleTLSOptionsDefaultFingerprint(t *testing.T) {
+	t.Parallel()
+
+	spec, err := parseCurlArgs([]string{"https://example.com"})
+	if err != nil {
+		t.Fatalf("parseCurlArgs() error = %v", err)
+	}
+
+	options := buildCycleTLSOptions(spec, nil)
+	if !options.ShuffleExtensions {
+		t.Fatalf("buildCycleTLSOptions() ShuffleExtensions = false, want true")
+	}
+
+	if options.SignatureAlgorithms != "RAND" {
+		t.Fatalf("buildCycleTLSOptions() SignatureAlgorithms = %s, want RAND", options.SignatureAlgorithms)
+	}
+
+	if options.Ja3 != "RAND" {
+		t.Fatalf("buildCycleTLSOptions() Ja3 = %s, want RAND", options.Ja3)
+	}
+}
+
+func TestBuildCycleTLSOptionsChromeFingerprint(t *testing.T) {
+	t.Parallel()
+
+	spec, err := parseCurlArgs([]string{"https://example.com"})
+	if err != nil {
+		t.Fatalf("parseCurlArgs() error = %v", err)
+	}
+
+	fpValue := "ChRoMe"
+	options := buildCycleTLSOptions(spec, &fpValue)
+
+	if !options.ShuffleExtensions {
+		t.Fatalf("buildCycleTLSOptions() ShuffleExtensions = false, want true")
+	}
+
+	if options.SignatureAlgorithms != "0403,0804,0401,0503,0805,0501,0806,0601" {
+		t.Fatalf("buildCycleTLSOptions() SignatureAlgorithms = %s", options.SignatureAlgorithms)
+	}
+
+	if options.Ja3 != "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,35-11-65281-10-18-0-45-5-23-16-65037-51-43-27-17513-13,29-23-24-25,0" {
+		t.Fatalf("buildCycleTLSOptions() Ja3 = %s", options.Ja3)
 	}
 }
 

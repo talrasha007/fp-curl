@@ -34,17 +34,13 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 
-	if fpValue != nil {
-		fmt.Fprintln(stdout, *fpValue)
-	}
-
 	spec, err := parseCurlArgs(curlArgs)
 	if err != nil {
 		fmt.Fprintln(stderr, err)
 		return 2
 	}
 
-	if err := executeRequest(spec, stdout); err != nil {
+	if err := executeRequest(spec, fpValue, stdout); err != nil {
 		fmt.Fprintln(stderr, err)
 		return 1
 	}
@@ -184,11 +180,11 @@ func parseCurlArgs(args []string) (requestSpec, error) {
 	return spec, nil
 }
 
-func executeRequest(spec requestSpec, stdout io.Writer) error {
+func executeRequest(spec requestSpec, fpValue *string, stdout io.Writer) error {
 	client := cycletls.Init()
 	defer client.Close()
 
-	resp, err := client.Do(spec.url, buildCycleTLSOptions(spec), spec.method)
+	resp, err := client.Do(spec.url, buildCycleTLSOptions(spec, fpValue), spec.method)
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
@@ -221,7 +217,7 @@ func executeRequest(spec requestSpec, stdout io.Writer) error {
 	return nil
 }
 
-func buildCycleTLSOptions(spec requestSpec) cycletls.Options {
+func buildCycleTLSOptions(spec requestSpec, fpValue *string) cycletls.Options {
 	headers := make(map[string]string, len(spec.headers))
 	for key, values := range spec.headers {
 		headers[key] = strings.Join(values, ", ")
@@ -232,25 +228,42 @@ func buildCycleTLSOptions(spec requestSpec) cycletls.Options {
 		userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.106 Safari/537.36"
 	}
 
+	shuffleExtensions, signatureAlgorithms, ja3 := resolveFingerprintProfile(fpValue)
+
 	return cycletls.Options{
 		Headers:                  headers,
 		Body:                     spec.body,
 		Proxy:                    spec.proxy,
-		ShuffleExtensions:        true,
+		ShuffleExtensions:        shuffleExtensions,
 		EnableClientSessionCache: true,
 		Meta:                     "ignore_ja3",
 		EnableConnectionReuse:    false,
 		MaxIdleClients:           128,
 		MaxTotalRequests:         2,
 		MaxResponseBodySize:      -1,
-		SignatureAlgorithms:      "RAND",
-		Ja3:                      "RAND",
+		SignatureAlgorithms:      signatureAlgorithms,
+		Ja3:                      ja3,
 		UserAgent:                userAgent,
 		DisableRedirect:          !spec.followRedirects,
 		InsecureSkipVerify:       spec.insecureTLS,
 		ForceHTTP1:               false,
 		ForceHTTP3:               false,
 	}
+}
+
+func resolveFingerprintProfile(fpValue *string) (bool, string, string) {
+	const (
+		defaultSignatureAlgorithms = "RAND"
+		defaultJA3                 = "RAND"
+		chromeSignatureAlgorithms  = "0403,0804,0401,0503,0805,0501,0806,0601"
+		chromeJA3                  = "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,35-11-65281-10-18-0-45-5-23-16-65037-51-43-27-17513-13,29-23-24-25,0"
+	)
+
+	if fpValue != nil && strings.EqualFold(*fpValue, "chrome") {
+		return true, chromeSignatureAlgorithms, chromeJA3
+	}
+
+	return true, defaultSignatureAlgorithms, defaultJA3
 }
 
 func writeResponseHead(w io.Writer, resp cycletls.Response) error {
