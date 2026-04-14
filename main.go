@@ -266,7 +266,7 @@ func resolveFingerprintProfile(fpValue *string) (bool, string, string) {
 	}
 
 	if fpValue != nil && strings.EqualFold(*fpValue, "curl") {
-		return true, curlSignatureAlgorithms, curlJA3
+		return false, curlSignatureAlgorithms, curlJA3
 	}
 
 	return true, defaultSignatureAlgorithms, defaultJA3
