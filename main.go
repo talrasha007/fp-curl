@@ -256,11 +256,17 @@ func resolveFingerprintProfile(fpValue *string) (bool, string, string) {
 		defaultSignatureAlgorithms = "RAND"
 		defaultJA3                 = "RAND"
 		chromeSignatureAlgorithms  = "0403,0804,0401,0503,0805,0501,0806,0601"
-		chromeJA3                  = "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,35-11-65281-10-18-0-45-5-23-16-65037-51-43-27-17513-13,29-23-24-25,0"
+		chromeJA3                  = "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,35-11-65281-10-18-0-45-5-23-16-65037-51-43-27-17513-13,29-23-24-25,0",
+		curlSignatureAlgorithms    = "0403,0503,0603,0807,0807,0809,080a,080b,0804,0805,0806,0401,0501,0601,0303,0301,0302,0402,0502,0602"
+		curlJA3                    = "771,4866-4867-4865-49196-49200-159-52393-52392-52394-49195-49199-158-49188-49192-107-49187-49191-103-49162-49172-57-49161-49171-51-157-156-61-60-53-47-255,0-11-10-16-22-23-49-13-43-45-51-21,29-23-30-25-24-256-257-258-259-260,0-1-2"
 	)
 
 	if fpValue != nil && strings.EqualFold(*fpValue, "chrome") {
 		return true, chromeSignatureAlgorithms, chromeJA3
+	}
+
+	if fpValue != nil && strings.EqualFold(*fpValue, "curl") {
+		return true, curlSignatureAlgorithms, curlJA3
 	}
 
 	return true, defaultSignatureAlgorithms, defaultJA3

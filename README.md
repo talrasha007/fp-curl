@@ -1,12 +1,6 @@
 # fp-curl
 
-一个最小的 Go 命令行工具，尽量兼容常见 `curl` 用法，并新增 `--fp` 参数。
-
-执行流程：
-
-1. 解析并移除 `--fp` / `--fp=value`
-2. 先把 `--fp` 的值打印出来
-3. 使用 `github.com/talrasha007/CycleTLS` 发起请求
+一个最小的 Go 命令行工具，尽量兼容常见 `curl` 用法，并新增 `--fp` 参数，取值为curl, chrome, rand。
 
 当前支持的常用参数：
 
