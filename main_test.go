@@ -187,6 +187,54 @@ func TestParseCurlArgsUserAgentHeader(t *testing.T) {
 	}
 }
 
+func TestParseCurlArgsUserAgentFlag(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		args []string
+		want string
+	}{
+		{
+			name: "short flag",
+			args: []string{"-A", "custom-agent", "https://example.com"},
+			want: "custom-agent",
+		},
+		{
+			name: "long flag",
+			args: []string{"--user-agent", "custom-agent", "https://example.com"},
+			want: "custom-agent",
+		},
+		{
+			name: "long flag with equals",
+			args: []string{"--user-agent=custom-agent", "https://example.com"},
+			want: "custom-agent",
+		},
+		{
+			name: "flag overrides earlier header",
+			args: []string{"-H", "User-Agent: header-agent", "-A", "flag-agent", "https://example.com"},
+			want: "flag-agent",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			spec, err := parseCurlArgs(tt.args)
+			if err != nil {
+				t.Fatalf("parseCurlArgs() error = %v", err)
+			}
+
+			options := buildCycleTLSOptions(spec, nil)
+			if options.UserAgent != tt.want {
+				t.Fatalf("buildCycleTLSOptions() user agent = %s, want %s", options.UserAgent, tt.want)
+			}
+		})
+	}
+}
+
 func TestParseCurlArgsProxyEquals(t *testing.T) {
 	t.Parallel()
 

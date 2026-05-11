@@ -7,6 +7,7 @@
 - URL 位置参数
 - `-X`, `--request`
 - `-H`, `--header`
+- `-A`, `--user-agent`
 - `-d`, `--data`, `--data-raw`, `--data-binary`
 - `-I`, `--head`
 - `-i`, `--include`
@@ -28,7 +29,7 @@
 - `MaxResponseBodySize: -1`
 - `SignatureAlgorithms: "RAND"`
 - `Ja3: "RAND"`
-- 默认 `UserAgent` 为示例中的 Chrome UA；如果传了 `-H "User-Agent: ..."` 会覆盖
+- 默认 `UserAgent` 为示例中的 Chrome UA；如果传了 `-A "..."`、`--user-agent "..."` 或 `-H "User-Agent: ..."` 会覆盖
 
 ## 构建
 
