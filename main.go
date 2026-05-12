@@ -303,6 +303,8 @@ func resolveFingerprintProfile(fpValue *string) (bool, string, string) {
 		java21JA3                    = "771,4866-4865-4867-49196-49195-52393-49200-52392-49199-159-52394-163-158-162-49188-49192-49187-49191-107-106-103-64-49162-49172-49161-49171-57-56-51-50-157-156-61-60-53-47-255,0-5-10-11-17-23-35-13-43-45-50-51,29-23-24-25-30-256-257-258-259-260,0"
 		appleTvSignatureAlgorithms   = "0403,0804,0401,0503,0805,0805,0501,0806,0601,0201"
 		appleTvJA3                   = "771,4866-4867-4865-49196-49195-52393-49200-49199-52392-49162-49161-49172-49171-157-156-53-47-49160-49170-10,0-23-65281-10-11-16-5-13-18-51-45-43-27,4588-29-23-24-25,0"
+		androidTVSignatureAlgorithms = "0403,0804,0401,0503,0805,0501,0806,0601,0201"
+		androidTVJA3                 = "771,4865-4866-4867-49195-49196-52393-49199-49200-52392-49161-49162-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-13-51-45-43-21,29-23-24,0"
 	)
 
 	if fpValue != nil && strings.EqualFold(*fpValue, "chrome") {
@@ -317,6 +319,10 @@ func resolveFingerprintProfile(fpValue *string) (bool, string, string) {
 		return false, curlSignatureAlgorithms, curlJA3
 	}
 
+	if fpValue != nil && strings.EqualFold(*fpValue, "curl_shuffle") {
+		return true, curlSignatureAlgorithms, curlJA3
+	}
+
 	if fpValue != nil && strings.EqualFold(*fpValue, "java") {
 		return false, java21SignatureAlgorithms, java21JA3
 	}
@@ -325,8 +331,8 @@ func resolveFingerprintProfile(fpValue *string) (bool, string, string) {
 		return true, appleTvSignatureAlgorithms, appleTvJA3
 	}
 
-	if fpValue != nil && strings.EqualFold(*fpValue, "curl_shuffle") {
-		return true, curlSignatureAlgorithms, curlJA3
+	if fpValue != nil && strings.EqualFold(*fpValue, "android_tv") {
+		return true, androidTVSignatureAlgorithms, androidTVJA3
 	}
 
 	return true, defaultSignatureAlgorithms, defaultJA3
