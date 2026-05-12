@@ -256,20 +256,34 @@ func TestParseCurlArgsTLSAndHTTPVersionFlags(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name string
-		args []string
+		name      string
+		args      []string
+		wantTLS12 bool
+		wantHTTP1 bool
+		wantHTTP3 bool
 	}{
 		{
-			name: "tlsv1.2 flag",
-			args: []string{"--tlsv1.2", "--http1.1", "https://example.com"},
+			name:      "tlsv1.2 flag",
+			args:      []string{"--tlsv1.2", "--http1.1", "https://example.com"},
+			wantTLS12: true,
+			wantHTTP1: true,
 		},
 		{
-			name: "tls max separate value",
-			args: []string{"--tls-max", "1.2", "--http1.1", "https://example.com"},
+			name:      "tls max separate value",
+			args:      []string{"--tls-max", "1.2", "--http1.1", "https://example.com"},
+			wantTLS12: true,
+			wantHTTP1: true,
 		},
 		{
-			name: "tls max equals value",
-			args: []string{"--tls-max=1.2", "--http1.1", "https://example.com"},
+			name:      "tls max equals value",
+			args:      []string{"--tls-max=1.2", "--http1.1", "https://example.com"},
+			wantTLS12: true,
+			wantHTTP1: true,
+		},
+		{
+			name:      "http3 flag",
+			args:      []string{"--http3", "https://example.com"},
+			wantHTTP3: true,
 		},
 	}
 
@@ -284,12 +298,16 @@ func TestParseCurlArgsTLSAndHTTPVersionFlags(t *testing.T) {
 			}
 
 			options := buildCycleTLSOptions(spec, nil)
-			if !options.ForceTLS12 {
-				t.Fatalf("buildCycleTLSOptions() ForceTLS12 = false, want true")
+			if options.ForceTLS12 != tt.wantTLS12 {
+				t.Fatalf("buildCycleTLSOptions() ForceTLS12 = %v, want %v", options.ForceTLS12, tt.wantTLS12)
 			}
 
-			if !options.ForceHTTP1 {
-				t.Fatalf("buildCycleTLSOptions() ForceHTTP1 = false, want true")
+			if options.ForceHTTP1 != tt.wantHTTP1 {
+				t.Fatalf("buildCycleTLSOptions() ForceHTTP1 = %v, want %v", options.ForceHTTP1, tt.wantHTTP1)
+			}
+
+			if options.ForceHTTP3 != tt.wantHTTP3 {
+				t.Fatalf("buildCycleTLSOptions() ForceHTTP3 = %v, want %v", options.ForceHTTP3, tt.wantHTTP3)
 			}
 		})
 	}

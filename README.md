@@ -15,6 +15,7 @@
 - `-x`, `--proxy`
 - `-L`, `--location`
 - `-k`, `--insecure`
+- `--http3`
 
 未实现的 `curl` 参数会直接报错，避免行为悄悄偏离预期。
 

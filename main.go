@@ -23,6 +23,7 @@ type requestSpec struct {
 	insecureTLS     bool
 	forceTLS12      bool
 	forceHTTP1      bool
+	forceHTTP3      bool
 }
 
 func main() {
@@ -178,6 +179,8 @@ func parseCurlArgs(args []string) (requestSpec, error) {
 			spec.forceTLS12 = true
 		case arg == "--http1.1":
 			spec.forceHTTP1 = true
+		case arg == "--http3":
+			spec.forceHTTP3 = true
 		case strings.HasPrefix(arg, "-"):
 			return requestSpec{}, fmt.Errorf("unsupported curl flag: %s", arg)
 		default:
@@ -282,7 +285,7 @@ func buildCycleTLSOptions(spec requestSpec, fpValue *string) cycletls.Options {
 		InsecureSkipVerify:       spec.insecureTLS,
 		ForceTLS12:               spec.forceTLS12,
 		ForceHTTP1:               spec.forceHTTP1,
-		ForceHTTP3:               false,
+		ForceHTTP3:               spec.forceHTTP3,
 	}
 }
 
