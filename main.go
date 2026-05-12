@@ -21,6 +21,8 @@ type requestSpec struct {
 	outputPath      string
 	followRedirects bool
 	insecureTLS     bool
+	forceTLS12      bool
+	forceHTTP1      bool
 }
 
 func main() {
@@ -156,6 +158,26 @@ func parseCurlArgs(args []string) (requestSpec, error) {
 			spec.followRedirects = true
 		case arg == "-k" || arg == "--insecure":
 			spec.insecureTLS = true
+		case arg == "--tlsv1.2":
+			spec.forceTLS12 = true
+		case arg == "--tls-max":
+			value, next, err := requireNextValue(args, i, arg)
+			if err != nil {
+				return requestSpec{}, err
+			}
+			if value != "1.2" {
+				return requestSpec{}, fmt.Errorf("unsupported --tls-max value: %s", value)
+			}
+			spec.forceTLS12 = true
+			i = next
+		case strings.HasPrefix(arg, "--tls-max="):
+			value := strings.TrimPrefix(arg, "--tls-max=")
+			if value != "1.2" {
+				return requestSpec{}, fmt.Errorf("unsupported --tls-max value: %s", value)
+			}
+			spec.forceTLS12 = true
+		case arg == "--http1.1":
+			spec.forceHTTP1 = true
 		case strings.HasPrefix(arg, "-"):
 			return requestSpec{}, fmt.Errorf("unsupported curl flag: %s", arg)
 		default:
@@ -255,8 +277,8 @@ func buildCycleTLSOptions(spec requestSpec, fpValue *string) cycletls.Options {
 		UserAgent:                userAgent,
 		DisableRedirect:          !spec.followRedirects,
 		InsecureSkipVerify:       spec.insecureTLS,
-		ForceTLS12:               true,
-		ForceHTTP1:               false,
+		ForceTLS12:               spec.forceTLS12,
+		ForceHTTP1:               spec.forceHTTP1,
 		ForceHTTP3:               false,
 	}
 }

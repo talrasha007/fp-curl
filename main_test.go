@@ -252,6 +252,62 @@ func TestParseCurlArgsProxyEquals(t *testing.T) {
 	}
 }
 
+func TestParseCurlArgsTLSAndHTTPVersionFlags(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		args []string
+	}{
+		{
+			name: "tlsv1.2 flag",
+			args: []string{"--tlsv1.2", "--http1.1", "https://example.com"},
+		},
+		{
+			name: "tls max separate value",
+			args: []string{"--tls-max", "1.2", "--http1.1", "https://example.com"},
+		},
+		{
+			name: "tls max equals value",
+			args: []string{"--tls-max=1.2", "--http1.1", "https://example.com"},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			spec, err := parseCurlArgs(tt.args)
+			if err != nil {
+				t.Fatalf("parseCurlArgs() error = %v", err)
+			}
+
+			options := buildCycleTLSOptions(spec, nil)
+			if !options.ForceTLS12 {
+				t.Fatalf("buildCycleTLSOptions() ForceTLS12 = false, want true")
+			}
+
+			if !options.ForceHTTP1 {
+				t.Fatalf("buildCycleTLSOptions() ForceHTTP1 = false, want true")
+			}
+		})
+	}
+}
+
+func TestParseCurlArgsRejectsUnsupportedTLSMax(t *testing.T) {
+	t.Parallel()
+
+	_, err := parseCurlArgs([]string{"--tls-max=1.3", "https://example.com"})
+	if err == nil {
+		t.Fatalf("parseCurlArgs() error = nil, want error")
+	}
+
+	if !strings.Contains(err.Error(), "unsupported --tls-max value") {
+		t.Fatalf("parseCurlArgs() error = %v", err)
+	}
+}
+
 func TestBuildCycleTLSOptionsDefaultFingerprint(t *testing.T) {
 	t.Parallel()
 
