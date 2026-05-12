@@ -262,11 +262,7 @@ func buildCycleTLSOptions(spec requestSpec, fpValue *string) cycletls.Options {
 		userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.106 Safari/537.36"
 	}
 
-	shuffleExtensions, signatureAlgorithms, ja3 := resolveFingerprintProfile(fpValue)
-	if strings.Contains(ja3, "4588") {
-		spec.forceTLS12 = true
-	}
-
+	shuffleExtensions, forceTLS12, signatureAlgorithms, ja3 := resolveFingerprintProfile(fpValue)
 	return cycletls.Options{
 		Headers:                  headers,
 		Body:                     spec.body,
@@ -283,13 +279,13 @@ func buildCycleTLSOptions(spec requestSpec, fpValue *string) cycletls.Options {
 		UserAgent:                userAgent,
 		DisableRedirect:          !spec.followRedirects,
 		InsecureSkipVerify:       spec.insecureTLS,
-		ForceTLS12:               spec.forceTLS12,
+		ForceTLS12:               spec.forceTLS12 || forceTLS12,
 		ForceHTTP1:               spec.forceHTTP1,
 		ForceHTTP3:               spec.forceHTTP3,
 	}
 }
 
-func resolveFingerprintProfile(fpValue *string) (bool, string, string) {
+func resolveFingerprintProfile(fpValue *string) (bool, bool, string, string) {
 	const (
 		defaultSignatureAlgorithms   = "RAND"
 		defaultJA3                   = "RAND"
@@ -305,37 +301,43 @@ func resolveFingerprintProfile(fpValue *string) (bool, string, string) {
 		appleTvJA3                   = "771,4866-4867-4865-49196-49195-52393-49200-49199-52392-49162-49161-49172-49171-157-156-53-47-49160-49170-10,0-23-65281-10-11-16-5-13-18-51-45-43-27,4588-29-23-24-25,0"
 		androidTVSignatureAlgorithms = "0403,0804,0401,0503,0805,0501,0806,0601,0201"
 		androidTVJA3                 = "771,4865-4866-4867-49195-49196-52393-49199-49200-52392-49161-49162-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-13-51-45-43-21,29-23-24,0"
+		ctvSignatureAlgorithms       = "0403,0804,0401,0503,0805,0501,0806,0601,0201"
+		ctvJa3                       = "771,49195-49196-52393-49199-49200-52392-49171-49172-156-157-47-53,65281-0-23-35-13-5-16-11-10,29-23-24,0"
 	)
 
 	if fpValue != nil && strings.EqualFold(*fpValue, "chrome") {
-		return true, chromeSignatureAlgorithms, chromeJA3
+		return true, false, chromeSignatureAlgorithms, chromeJA3
 	}
 
 	if fpValue != nil && strings.EqualFold(*fpValue, "chrome148") {
-		return true, chrome148SignatureAlgorithms, chrome148JA3
+		return true, true, chrome148SignatureAlgorithms, chrome148JA3
 	}
 
 	if fpValue != nil && strings.EqualFold(*fpValue, "curl") {
-		return false, curlSignatureAlgorithms, curlJA3
+		return false, false, curlSignatureAlgorithms, curlJA3
 	}
 
 	if fpValue != nil && strings.EqualFold(*fpValue, "curl_shuffle") {
-		return true, curlSignatureAlgorithms, curlJA3
+		return true, false, curlSignatureAlgorithms, curlJA3
 	}
 
 	if fpValue != nil && strings.EqualFold(*fpValue, "java") {
-		return false, java21SignatureAlgorithms, java21JA3
+		return false, false, java21SignatureAlgorithms, java21JA3
 	}
 
 	if fpValue != nil && strings.EqualFold(*fpValue, "apple_tv") {
-		return true, appleTvSignatureAlgorithms, appleTvJA3
+		return true, true, appleTvSignatureAlgorithms, appleTvJA3
 	}
 
 	if fpValue != nil && strings.EqualFold(*fpValue, "android_tv") {
-		return true, androidTVSignatureAlgorithms, androidTVJA3
+		return true, false, androidTVSignatureAlgorithms, androidTVJA3
 	}
 
-	return true, defaultSignatureAlgorithms, defaultJA3
+	if fpValue != nil && strings.EqualFold(*fpValue, "ctv") {
+		return false, true, ctvSignatureAlgorithms, ctvJa3
+	}
+
+	return true, false, defaultSignatureAlgorithms, defaultJA3
 }
 
 func writeResponseHead(w io.Writer, resp cycletls.Response) error {
