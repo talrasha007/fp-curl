@@ -2,7 +2,7 @@ module fp-curl
 
 go 1.25.0
 
-require github.com/talrasha007/CycleTLS v0.3.1
+require github.com/talrasha007/CycleTLS v0.3.2
 
 require (
 	github.com/Danny-Dasilva/fhttp v0.0.0-20260106165651-41258808b131 // indirect

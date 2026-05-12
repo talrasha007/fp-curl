@@ -225,8 +225,8 @@ github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
-github.com/talrasha007/CycleTLS v0.3.1 h1:NHRQ/KzWpvi6acnVPYg7WXHerQDstp/cTL8zP4GEXQY=
-github.com/talrasha007/CycleTLS v0.3.1/go.mod h1:qg3Lv9Bh/Kz4lFdvM73JxFK0Bu2OcJsXk1ieDYMHvEo=
+github.com/talrasha007/CycleTLS v0.3.2 h1:42JeMhRHxRkYUvU8Zj6eVKpy77qZroh8GjyfMgoqEoo=
+github.com/talrasha007/CycleTLS v0.3.2/go.mod h1:qg3Lv9Bh/Kz4lFdvM73JxFK0Bu2OcJsXk1ieDYMHvEo=
 github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07/go.mod h1:kDXzergiv9cbyO7IOYJZWg1U88JhDg3PB6klq9Hg2pA=
 github.com/tidwall/gjson v1.18.0 h1:FIDeeyB800efLX89e5a8Y0BNH+LOngJyGrIWxG2FKQY=
 github.com/tidwall/gjson v1.18.0/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=
