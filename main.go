@@ -255,6 +255,7 @@ func buildCycleTLSOptions(spec requestSpec, fpValue *string) cycletls.Options {
 		UserAgent:                userAgent,
 		DisableRedirect:          !spec.followRedirects,
 		InsecureSkipVerify:       spec.insecureTLS,
+		ForceTLS12:               true,
 		ForceHTTP1:               false,
 		ForceHTTP3:               false,
 	}
@@ -272,6 +273,8 @@ func resolveFingerprintProfile(fpValue *string) (bool, string, string) {
 		curlJA3                      = "771,4866-4867-4865-49196-49200-159-52393-52392-52394-49195-49199-158-49188-49192-107-49187-49191-103-49162-49172-57-49161-49171-51-157-156-61-60-53-47-255,0-11-10-16-22-23-49-13-43-45-51-21,29-23-30-25-24-256-257-258-259-260,0-1-2"
 		java21SignatureAlgorithms    = "0403,0503,0603,0807,0808,0804,0805,0806,0809,080a,080b,0401,0501,0601,0402,0303,0301,0302,0203,0201,0202"
 		java21JA3                    = "771,4866-4865-4867-49196-49195-52393-49200-52392-49199-159-52394-163-158-162-49188-49192-49187-49191-107-106-103-64-49162-49172-49161-49171-57-56-51-50-157-156-61-60-53-47-255,0-5-10-11-17-23-35-13-43-45-50-51,29-23-24-25-30-256-257-258-259-260,0"
+		appleTvSignatureAlgorithms   = "0403,0804,0401,0503,0805,0805,0501,0806,0601,0201"
+		appleTvJA3                   = "771,4866-4867-4865-49196-49195-52393-49200-49199-52392-49162-49161-49172-49171-157-156-53-47-49160-49170-10,0-23-65281-10-11-16-5-13-18-51-45-43-27,4588-29-23-24-25,0"
 	)
 
 	if fpValue != nil && strings.EqualFold(*fpValue, "chrome") {
@@ -288,6 +291,10 @@ func resolveFingerprintProfile(fpValue *string) (bool, string, string) {
 
 	if fpValue != nil && strings.EqualFold(*fpValue, "java") {
 		return false, java21SignatureAlgorithms, java21JA3
+	}
+
+	if fpValue != nil && strings.EqualFold(*fpValue, "apple_tv") {
+		return true, appleTvSignatureAlgorithms, appleTvJA3
 	}
 
 	if fpValue != nil && strings.EqualFold(*fpValue, "curl_shuffle") {
