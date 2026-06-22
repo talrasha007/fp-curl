@@ -372,6 +372,27 @@ func TestBuildCycleTLSOptionsChromeFingerprint(t *testing.T) {
 	}
 }
 
+func TestFingerprintProfilesIncludesKnownProfiles(t *testing.T) {
+	t.Parallel()
+
+	wantProfiles := []string{
+		"chrome",
+		"chrome148",
+		"curl",
+		"curl_shuffle",
+		"java",
+		"apple_tv",
+		"android_tv",
+		"ctv",
+	}
+
+	for _, name := range wantProfiles {
+		if _, ok := fingerprintProfiles[name]; !ok {
+			t.Fatalf("fingerprintProfiles[%q] missing", name)
+		}
+	}
+}
+
 func TestRunWritesBodyToFile(t *testing.T) {
 	t.Parallel()
 

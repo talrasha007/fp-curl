@@ -285,59 +285,90 @@ func buildCycleTLSOptions(spec requestSpec, fpValue *string) cycletls.Options {
 	}
 }
 
+const (
+	defaultSignatureAlgorithms   = "RAND"
+	defaultJA3                   = "RAND"
+	chromeSignatureAlgorithms    = "0403,0804,0401,0503,0805,0501,0806,0601"
+	chromeJA3                    = "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,35-11-65281-10-18-0-45-5-23-16-65037-51-43-27-17513-13,29-23-24-25,0"
+	chrome148SignatureAlgorithms = "0403,0804,0401,0503,0805,0501,0806,0601"
+	chrome148JA3                 = "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,5-18-10-17613-65281-16-27-65037-0-43-51-11-35-13-23-45,4588-29-23-24,0"
+	curlSignatureAlgorithms      = "0403,0503,0603,0807,0808,0809,080a,080b,0804,0805,0806,0401,0501,0601,0303,0301,0302,0402,0502,0602"
+	curlJA3                      = "771,4866-4867-4865-49196-49200-159-52393-52392-52394-49195-49199-158-49188-49192-107-49187-49191-103-49162-49172-57-49161-49171-51-157-156-61-60-53-47-255,0-11-10-16-22-23-49-13-43-45-51-21,29-23-30-25-24-256-257-258-259-260,0-1-2"
+	java21SignatureAlgorithms    = "0403,0503,0603,0807,0808,0804,0805,0806,0809,080a,080b,0401,0501,0601,0402,0303,0301,0302,0203,0201,0202"
+	java21JA3                    = "771,4866-4865-4867-49196-49195-52393-49200-52392-49199-159-52394-163-158-162-49188-49192-49187-49191-107-106-103-64-49162-49172-49161-49171-57-56-51-50-157-156-61-60-53-47-255,0-5-10-11-17-23-35-13-43-45-50-51,29-23-24-25-30-256-257-258-259-260,0"
+	appleTvSignatureAlgorithms   = "0403,0804,0401,0503,0805,0805,0501,0806,0601,0201"
+	appleTvJA3                   = "771,4866-4867-4865-49196-49195-52393-49200-49199-52392-49162-49161-49172-49171-157-156-53-47-49160-49170-10,0-23-65281-10-11-16-5-13-18-51-45-43-27,4588-29-23-24-25,0"
+	androidTVSignatureAlgorithms = "0403,0804,0401,0503,0805,0501,0806,0601,0201"
+	androidTVJA3                 = "771,4865-4866-4867-49195-49196-52393-49199-49200-52392-49161-49162-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-13-51-45-43-21,29-23-24,0"
+	ctvSignatureAlgorithms       = "0403,0804,0401,0503,0805,0501,0806,0601,0201"
+	ctvJa3                       = "771,49195-49196-52393-49199-49200-52392-49171-49172-156-157-47-53,65281-0-23-35-13-5-16-11-10,29-23-24,0"
+)
+
+type fingerprintProfile struct {
+	shuffleExtensions   bool
+	forceTLS12          bool
+	signatureAlgorithms string
+	ja3                 string
+}
+
+var defaultFingerprintProfile = fingerprintProfile{
+	shuffleExtensions:   true,
+	signatureAlgorithms: defaultSignatureAlgorithms,
+	ja3:                 defaultJA3,
+}
+
+var fingerprintProfiles = map[string]fingerprintProfile{
+	"chrome": {
+		shuffleExtensions:   true,
+		signatureAlgorithms: chromeSignatureAlgorithms,
+		ja3:                 chromeJA3,
+	},
+	"chrome148": {
+		shuffleExtensions:   true,
+		forceTLS12:          true,
+		signatureAlgorithms: chrome148SignatureAlgorithms,
+		ja3:                 chrome148JA3,
+	},
+	"curl": {
+		signatureAlgorithms: curlSignatureAlgorithms,
+		ja3:                 curlJA3,
+	},
+	"curl_shuffle": {
+		shuffleExtensions:   true,
+		signatureAlgorithms: curlSignatureAlgorithms,
+		ja3:                 curlJA3,
+	},
+	"java": {
+		signatureAlgorithms: java21SignatureAlgorithms,
+		ja3:                 java21JA3,
+	},
+	"apple_tv": {
+		shuffleExtensions:   true,
+		forceTLS12:          true,
+		signatureAlgorithms: appleTvSignatureAlgorithms,
+		ja3:                 appleTvJA3,
+	},
+	"android_tv": {
+		shuffleExtensions:   true,
+		signatureAlgorithms: androidTVSignatureAlgorithms,
+		ja3:                 androidTVJA3,
+	},
+	"ctv": {
+		forceTLS12:          true,
+		signatureAlgorithms: ctvSignatureAlgorithms,
+		ja3:                 ctvJa3,
+	},
+}
+
 func resolveFingerprintProfile(fpValue *string) (bool, bool, string, string) {
-	const (
-		defaultSignatureAlgorithms   = "RAND"
-		defaultJA3                   = "RAND"
-		chromeSignatureAlgorithms    = "0403,0804,0401,0503,0805,0501,0806,0601"
-		chromeJA3                    = "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,35-11-65281-10-18-0-45-5-23-16-65037-51-43-27-17513-13,29-23-24-25,0"
-		chrome148SignatureAlgorithms = "0403,0804,0401,0503,0805,0501,0806,0601"
-		chrome148JA3                 = "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,5-18-10-17613-65281-16-27-65037-0-43-51-11-35-13-23-45,4588-29-23-24,0"
-		curlSignatureAlgorithms      = "0403,0503,0603,0807,0808,0809,080a,080b,0804,0805,0806,0401,0501,0601,0303,0301,0302,0402,0502,0602"
-		curlJA3                      = "771,4866-4867-4865-49196-49200-159-52393-52392-52394-49195-49199-158-49188-49192-107-49187-49191-103-49162-49172-57-49161-49171-51-157-156-61-60-53-47-255,0-11-10-16-22-23-49-13-43-45-51-21,29-23-30-25-24-256-257-258-259-260,0-1-2"
-		java21SignatureAlgorithms    = "0403,0503,0603,0807,0808,0804,0805,0806,0809,080a,080b,0401,0501,0601,0402,0303,0301,0302,0203,0201,0202"
-		java21JA3                    = "771,4866-4865-4867-49196-49195-52393-49200-52392-49199-159-52394-163-158-162-49188-49192-49187-49191-107-106-103-64-49162-49172-49161-49171-57-56-51-50-157-156-61-60-53-47-255,0-5-10-11-17-23-35-13-43-45-50-51,29-23-24-25-30-256-257-258-259-260,0"
-		appleTvSignatureAlgorithms   = "0403,0804,0401,0503,0805,0805,0501,0806,0601,0201"
-		appleTvJA3                   = "771,4866-4867-4865-49196-49195-52393-49200-49199-52392-49162-49161-49172-49171-157-156-53-47-49160-49170-10,0-23-65281-10-11-16-5-13-18-51-45-43-27,4588-29-23-24-25,0"
-		androidTVSignatureAlgorithms = "0403,0804,0401,0503,0805,0501,0806,0601,0201"
-		androidTVJA3                 = "771,4865-4866-4867-49195-49196-52393-49199-49200-52392-49161-49162-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-13-51-45-43-21,29-23-24,0"
-		ctvSignatureAlgorithms       = "0403,0804,0401,0503,0805,0501,0806,0601,0201"
-		ctvJa3                       = "771,49195-49196-52393-49199-49200-52392-49171-49172-156-157-47-53,65281-0-23-35-13-5-16-11-10,29-23-24,0"
-	)
-
-	if fpValue != nil && strings.EqualFold(*fpValue, "chrome") {
-		return true, false, chromeSignatureAlgorithms, chromeJA3
+	profile := defaultFingerprintProfile
+	if fpValue != nil {
+		if registeredProfile, ok := fingerprintProfiles[strings.ToLower(*fpValue)]; ok {
+			profile = registeredProfile
+		}
 	}
 
-	if fpValue != nil && strings.EqualFold(*fpValue, "chrome148") {
-		return true, true, chrome148SignatureAlgorithms, chrome148JA3
-	}
-
-	if fpValue != nil && strings.EqualFold(*fpValue, "curl") {
-		return false, false, curlSignatureAlgorithms, curlJA3
-	}
-
-	if fpValue != nil && strings.EqualFold(*fpValue, "curl_shuffle") {
-		return true, false, curlSignatureAlgorithms, curlJA3
-	}
-
-	if fpValue != nil && strings.EqualFold(*fpValue, "java") {
-		return false, false, java21SignatureAlgorithms, java21JA3
-	}
-
-	if fpValue != nil && strings.EqualFold(*fpValue, "apple_tv") {
-		return true, true, appleTvSignatureAlgorithms, appleTvJA3
-	}
-
-	if fpValue != nil && strings.EqualFold(*fpValue, "android_tv") {
-		return true, false, androidTVSignatureAlgorithms, androidTVJA3
-	}
-
-	if fpValue != nil && strings.EqualFold(*fpValue, "ctv") {
-		return false, true, ctvSignatureAlgorithms, ctvJa3
-	}
-
-	return true, false, defaultSignatureAlgorithms, defaultJA3
+	return profile.shuffleExtensions, profile.forceTLS12, profile.signatureAlgorithms, profile.ja3
 }
 
 func writeResponseHead(w io.Writer, resp cycletls.Response) error {
