@@ -372,7 +372,7 @@ func resolveFingerprintProfile(fpValue *string) (bool, bool, string, string) {
 }
 
 func writeResponseHead(w io.Writer, resp cycletls.Response) error {
-	if _, err := fmt.Fprintf(w, "HTTP/1.1 %d %s\r\n", resp.Status, http.StatusText(resp.Status)); err != nil {
+	if _, err := fmt.Fprintf(w, "HTTP/2 %d %s\r\n", resp.Status, http.StatusText(resp.Status)); err != nil {
 		return fmt.Errorf("write response status failed: %w", err)
 	}
 
