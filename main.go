@@ -262,25 +262,25 @@ func buildCycleTLSOptions(spec requestSpec, fpValue *string) cycletls.Options {
 		userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.106 Safari/537.36"
 	}
 
-	shuffleExtensions, forceTLS12, signatureAlgorithms, ja3 := resolveFingerprintProfile(fpValue)
+	profile := resolveFingerprintProfile(fpValue)
 	return cycletls.Options{
 		Headers:                  headers,
 		Body:                     spec.body,
 		Proxy:                    spec.proxy,
-		ShuffleExtensions:        shuffleExtensions,
+		ShuffleExtensions:        profile.shuffleExtensions,
 		EnableClientSessionCache: true,
 		Meta:                     "ignore_ja3",
 		EnableConnectionReuse:    false,
 		MaxIdleClients:           128,
 		MaxTotalRequests:         2,
 		MaxResponseBodySize:      -1,
-		SignatureAlgorithms:      signatureAlgorithms,
-		Ja3:                      ja3,
+		SignatureAlgorithms:      profile.signatureAlgorithms,
+		Ja3:                      profile.ja3,
 		UserAgent:                userAgent,
 		DisableRedirect:          !spec.followRedirects,
 		InsecureSkipVerify:       spec.insecureTLS,
-		ForceTLS12:               spec.forceTLS12 || forceTLS12,
-		ForceHTTP1:               spec.forceHTTP1,
+		ForceTLS12:               spec.forceTLS12 || profile.forceTLS12,
+		ForceHTTP1:               spec.forceHTTP1 || profile.forceHTTP1,
 		ForceHTTP3:               spec.forceHTTP3,
 	}
 }
@@ -310,6 +310,7 @@ const (
 type fingerprintProfile struct {
 	shuffleExtensions   bool
 	forceTLS12          bool
+	forceHTTP1          bool
 	signatureAlgorithms string
 	ja3                 string
 }
@@ -374,15 +375,14 @@ var fingerprintProfiles = map[string]fingerprintProfile{
 	},
 }
 
-func resolveFingerprintProfile(fpValue *string) (bool, bool, string, string) {
-	profile := defaultFingerprintProfile
+func resolveFingerprintProfile(fpValue *string) fingerprintProfile {
 	if fpValue != nil {
-		if registeredProfile, ok := fingerprintProfiles[strings.ToLower(*fpValue)]; ok {
-			profile = registeredProfile
+		if profile, ok := fingerprintProfiles[strings.ToLower(*fpValue)]; ok {
+			return profile
 		}
 	}
 
-	return profile.shuffleExtensions, profile.forceTLS12, profile.signatureAlgorithms, profile.ja3
+	return defaultFingerprintProfile
 }
 
 func writeResponseHead(w io.Writer, resp cycletls.Response) error {
