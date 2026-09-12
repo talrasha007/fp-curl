@@ -302,6 +302,9 @@ const (
 	androidTVJA3                 = "771,4865-4866-4867-49195-49196-52393-49199-49200-52392-49161-49162-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-13-51-45-43-21,29-23-24,0"
 	ctvSignatureAlgorithms       = "0403,0804,0401,0503,0805,0501,0806,0601,0201"
 	ctvJa3                       = "771,49195-49196-52393-49199-49200-52392-49171-49172-156-157-47-53,65281-0-23-35-13-5-16-11-10,29-23-24,0"
+
+	ctv1Ja3 = "771,49195-49196-52393-49199-49200-52392-49161-49162-49171-49172-156-157-47-53,65281-0-23-35-13-5-16-11-10,29-23-24,0"
+	ctv2Ja3 = "771,49195-49196-52393-49199-49200-52392-49171-49172-156-157-47-53,65281-0-23-35-13-5-16-11-10-21,29-23-24,0"
 )
 
 type fingerprintProfile struct {
@@ -357,6 +360,17 @@ var fingerprintProfiles = map[string]fingerprintProfile{
 		forceTLS12:          true,
 		signatureAlgorithms: ctvSignatureAlgorithms,
 		ja3:                 ctvJa3,
+	},
+	"ctv1": {
+		forceTLS12:          true,
+		signatureAlgorithms: ctvSignatureAlgorithms,
+		ja3:                 ctv1Ja3,
+		forceHTTP1:          true,
+	},
+	"ctv2": {
+		forceTLS12:          true,
+		signatureAlgorithms: ctvSignatureAlgorithms,
+		ja3:                 ctv2Ja3,
 	},
 }
 
