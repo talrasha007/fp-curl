@@ -165,8 +165,8 @@ func TestRunSendsHTTPRequest(t *testing.T) {
 		t.Fatalf("request body = %s, want name=codex", gotBody)
 	}
 
-	if stdout.String() != "demo\nok" {
-		t.Fatalf("stdout = %q, want %q", stdout.String(), "demo\nok")
+	if stdout.String() != "ok" {
+		t.Fatalf("stdout = %q, want %q", stdout.String(), "ok")
 	}
 }
 

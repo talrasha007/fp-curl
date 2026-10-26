@@ -3,8 +3,12 @@ package main
 import (
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/http/cookiejar"
+	"net/url"
 	"os"
+	"strconv"
 	"strings"
 
 	cycletls "github.com/talrasha007/CycleTLS"
@@ -16,6 +20,9 @@ type requestSpec struct {
 	headers         http.Header
 	body            string
 	proxy           string
+	resolveIP       string
+	resolveEntries  []resolveEntry
+	localIP         string
 	headOnly        bool
 	includeHeaders  bool
 	outputPath      string
@@ -155,6 +162,25 @@ func parseCurlArgs(args []string) (requestSpec, error) {
 			i = next
 		case strings.HasPrefix(arg, "--proxy="):
 			spec.proxy = strings.TrimPrefix(arg, "--proxy=")
+		case arg == "--resolve" || arg == "--interface" || strings.HasPrefix(arg, "--resolve=") || strings.HasPrefix(arg, "--interface="):
+			flag, value, hasValue := strings.Cut(arg, "=")
+			if !hasValue {
+				var err error
+				value, i, err = requireNextValue(args, i, flag)
+				if err != nil {
+					return requestSpec{}, err
+				}
+			}
+			if flag == "--resolve" {
+				if err := addResolve(&spec, value); err != nil {
+					return requestSpec{}, err
+				}
+			} else {
+				if net.ParseIP(value) == nil {
+					return requestSpec{}, fmt.Errorf("invalid --interface IP: %s", value)
+				}
+				spec.localIP = value
+			}
 		case arg == "-L" || arg == "--location":
 			spec.followRedirects = true
 		case arg == "-k" || arg == "--insecure":
@@ -218,7 +244,7 @@ func executeRequest(spec requestSpec, fpValue *string, stdout io.Writer) error {
 	client := cycletls.Init()
 	defer client.Close()
 
-	resp, err := client.Do(spec.url, buildCycleTLSOptions(spec, fpValue), spec.method)
+	resp, err := doRequest(client, spec, fpValue)
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
@@ -267,6 +293,8 @@ func buildCycleTLSOptions(spec requestSpec, fpValue *string) cycletls.Options {
 		Headers:                  headers,
 		Body:                     spec.body,
 		Proxy:                    spec.proxy,
+		IP:                       spec.connectionIP(),
+		LocalIP:                  spec.localIP,
 		ShuffleExtensions:        profile.shuffleExtensions,
 		EnableClientSessionCache: true,
 		Meta:                     "ignore_ja3",
@@ -283,6 +311,114 @@ func buildCycleTLSOptions(spec requestSpec, fpValue *string) cycletls.Options {
 		ForceHTTP1:               spec.forceHTTP1 || profile.forceHTTP1,
 		ForceHTTP3:               spec.forceHTTP3,
 	}
+}
+
+type resolveEntry struct {
+	host string
+	port string
+	ip   string
+}
+
+func addResolve(spec *requestSpec, value string) error {
+	if ip := net.ParseIP(value); ip != nil {
+		spec.resolveIP = ip.String()
+		return nil
+	}
+	parts := strings.SplitN(value, ":", 3)
+	if len(parts) == 3 && parts[0] != "" {
+		port, err := strconv.Atoi(parts[1])
+		address := parts[2]
+		if strings.HasPrefix(address, "[") && strings.HasSuffix(address, "]") {
+			address = address[1 : len(address)-1]
+		}
+		if ip := net.ParseIP(address); err == nil && port > 0 && port <= 65535 && ip != nil {
+			spec.resolveEntries = append(spec.resolveEntries, resolveEntry{
+				host: strings.ToLower(parts[0]), port: strconv.Itoa(port), ip: ip.String(),
+			})
+			return nil
+		}
+	}
+	return fmt.Errorf("invalid --resolve value %q: expected IP or host:port:IP", value)
+}
+
+func (spec requestSpec) connectionIP() string {
+	if spec.resolveIP != "" {
+		return spec.resolveIP
+	}
+	u, err := url.Parse(spec.url)
+	if err != nil {
+		return ""
+	}
+	port := u.Port()
+	if port == "" {
+		port = "443"
+		if strings.EqualFold(u.Scheme, "http") {
+			port = "80"
+		}
+	}
+	wildcard := ""
+	for i := len(spec.resolveEntries) - 1; i >= 0; i-- {
+		entry := spec.resolveEntries[i]
+		if entry.port != port {
+			continue
+		}
+		if strings.EqualFold(entry.host, u.Hostname()) {
+			return entry.ip
+		}
+		if entry.host == "*" && wildcard == "" {
+			wildcard = entry.ip
+		}
+	}
+	return wildcard
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) { return f(req) }
+
+func doRequest(client cycletls.CycleTLS, spec requestSpec, fpValue *string) (cycletls.Response, error) {
+	if !spec.followRedirects || len(spec.resolveEntries) == 0 || spec.resolveIP != "" {
+		return client.Do(spec.url, buildCycleTLSOptions(spec, fpValue), spec.method)
+	}
+	// Use net/http's redirect policy for method, body, cookie and sensitive-header
+	// handling, but send each hop through CycleTLS with its own resolve match.
+	var last cycletls.Response
+	jar, _ := cookiejar.New(nil)
+	redirectClient := &http.Client{Jar: jar, Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		hop := spec
+		hop.url, hop.method, hop.headers = req.URL.String(), req.Method, req.Header
+		hop.followRedirects = false
+		hop.body = ""
+		if req.Body != nil {
+			body, err := io.ReadAll(req.Body)
+			req.Body.Close()
+			if err != nil {
+				return nil, err
+			}
+			hop.body = string(body)
+		}
+		resp, err := client.Do(hop.url, buildCycleTLSOptions(hop, fpValue), hop.method)
+		if err != nil {
+			return nil, err
+		}
+		last = resp
+		headers := make(http.Header, len(resp.Headers))
+		for key, value := range resp.Headers {
+			headers.Set(key, value)
+		}
+		return &http.Response{StatusCode: resp.Status, Header: headers,
+			Body: io.NopCloser(strings.NewReader(resp.Body)), Request: req}, nil
+	})}
+	req, err := http.NewRequest(spec.method, spec.url, strings.NewReader(spec.body))
+	if err != nil {
+		return cycletls.Response{}, err
+	}
+	req.Header = spec.headers.Clone()
+	resp, err := redirectClient.Do(req)
+	if resp != nil {
+		resp.Body.Close()
+	}
+	return last, err
 }
 
 const (
